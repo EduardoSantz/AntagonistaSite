@@ -796,3 +796,7 @@ form a
         margin-bottom: 40px;
     }
 }
+input:not(:placeholder-shown) {
+    background-color: white;
+    color: black;
+}

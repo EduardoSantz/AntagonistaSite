@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Antagonista Merchstore</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="navbar">
+        <div class="logo">
+          <img src="images/logo-antagonista.jpg" alt="Logo" width="100" />
+        </div>
+        <nav>
+          <ul id="MenuItems">
+            <li><a href="index.html">Início</a></li>
+            <li><a href="produtos.html">Produtos</a></li>
+            <li><a href="sobre.html">Sobre</a></li>
+            <li><a href="login.html">Conta</a></li>
+            <li><a href="carrinho.html">Carrinho</a></li>
+          </ul>
+        </nav>
+        <img src="images/menu.png" alt="Menu" class="menu-icon" onclick="menutoggle()" />
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <h2>Login</h2>
+      <form id="loginForm">
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="password" name="password" placeholder="Senha" required />
+        <button type="submit" class="btn">Entrar</button>
+      </form>
+      <p>Ou faça login com:</p>
+      <a href="http://localhost:5000/api/auth/google" class="btn">Google</a>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>© 2025 Antagonista</p>
+    </div>
+  </footer>
+
+  <script>
+    function menutoggle() {
+      const menu = document.getElementById("MenuItems");
+      menu.style.maxHeight = menu.style.maxHeight === "0px" || !menu.style.maxHeight ? "200px" : "0px";
+    }
+
+    // Exemplo de envio do formulário de login via AJAX
+    const loginForm = document.getElementById("loginForm");
+    loginForm.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const formData = new FormData(loginForm);
+      const data = {
+        email: formData.get("email"),
+        password: formData.get("password")
+      };
+
+      // Use a URL relativa para o localhost
+      fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+        .then(response => response.json())
+        .then(result => {
+          if (result.token) {
+            alert("Login realizado com sucesso!");
+            // Salve o token no armazenamento local ou cookie e redirecione
+          } else {
+            alert(result.message);
+          }
+        })
+        .catch(err => console.error("Erro no login:", err));
+    });
+  </script>
+</body>
+</html>
