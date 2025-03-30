@@ -1,7 +1,13 @@
-// controllers/authController.js
+// antagonista-backend/controllers/authController.js
 const prisma = require('../config/prismaClient');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+
+// Verifica se a variável de ambiente JWT_SECRET está definida
+if (!process.env.JWT_SECRET) {
+  console.error("A variável de ambiente JWT_SECRET não está definida.");
+  process.exit(1);
+}
 
 const register = async (req, res) => {
   const { username, email, password } = req.body;
@@ -18,17 +24,13 @@ const register = async (req, res) => {
 
     // Cria o novo usuário
     const newUser = await prisma.user.create({
-      data: {
-        username,
-        email,
-        password: hashedPassword,
-      },
+      data: { username, email, password: hashedPassword },
     });
 
-    res.status(201).json({ message: 'Usuário registrado com sucesso!', user: newUser });
+    return res.status(201).json({ message: 'Usuário registrado com sucesso!', user: newUser });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro no servidor' });
+    console.error('Erro em register:', error);
+    return res.status(500).json({ message: 'Erro no servidor' });
   }
 };
 
@@ -37,7 +39,7 @@ const login = async (req, res) => {
   try {
     // Busca o usuário pelo email
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(400).json({ message: 'Credenciais inválidas' });
     }
 
@@ -52,10 +54,10 @@ const login = async (req, res) => {
       expiresIn: '1h',
     });
 
-    res.status(200).json({ message: 'Login realizado com sucesso', token });
+    return res.status(200).json({ message: 'Login realizado com sucesso', token });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro no servidor' });
+    console.error('Erro em login:', error);
+    return res.status(500).json({ message: 'Erro no servidor' });
   }
 };
 

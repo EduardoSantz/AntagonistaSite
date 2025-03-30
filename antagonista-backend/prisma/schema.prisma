@@ -1,38 +1,40 @@
-// prisma/schema.prisma
+// antagonista-backend/prisma/schema.prisma
+datasource db {
+  provider = "postgresql" // ou outro banco de dados que esteja usando
+  url      = env("DATABASE_URL")
+}
+
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 model User {
-  id        Int       @id @default(autoincrement())
-  username  String
-  email     String    @unique
-  password  String
-  createdAt DateTime  @default(now())
-  cartItems CartItem[]
+  id        Int      @id @default(autoincrement())
+  username  String?
+  email     String   @unique
+  password  String?  // pode ser nulo para usuários que se registram via Google
+  googleId  String?  @unique
+  createdAt DateTime @default(now())
+  // Outras relações, se necessário
 }
 
 model Product {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
   description String?
   price       Float
   imageUrl    String?
-  createdAt   DateTime  @default(now())
-  cartItems   CartItem[]
+  createdAt   DateTime @default(now())
+  // Outras propriedades e relações
 }
 
 model CartItem {
   id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
   userId    Int
-  product   Product  @relation(fields: [productId], references: [id])
   productId Int
   quantity  Int
-  addedAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }

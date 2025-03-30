@@ -1,32 +1,50 @@
 // controllers/productController.js
 const prisma = require('../config/prismaClient');
 
-// Obter todos os produtos
+// Retorna todos os produtos
 const getProducts = async (req, res) => {
   try {
     const products = await prisma.product.findMany();
-    res.status(200).json(products);
+    return res.status(200).json(products);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao buscar produtos' });
+    console.error('Erro ao buscar produtos:', error);
+    return res.status(500).json({ message: 'Erro ao buscar produtos' });
   }
 };
 
-// Obter um produto por ID
+// Retorna um produto por ID
 const getProductById = async (req, res) => {
   const { id } = req.params;
   try {
-    const product = await prisma.product.findUnique({
-      where: { id: Number(id) },
-    });
+    const product = await prisma.product.findUnique({ where: { id: Number(id) } });
     if (!product) {
       return res.status(404).json({ message: 'Produto não encontrado' });
     }
-    res.status(200).json(product);
+    return res.status(200).json(product);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao buscar o produto' });
+    console.error('Erro ao buscar o produto:', error);
+    return res.status(500).json({ message: 'Erro ao buscar o produto' });
   }
 };
 
-module.exports = { getProducts, getProductById };
+// Cria um novo produto
+const createProduct = async (req, res) => {
+  const { name, price, description, imageUrl, category } = req.body;
+
+  // Verificação básica dos campos obrigatórios
+  if (!name || !price || !imageUrl) {
+    return res.status(400).json({ message: 'Campos obrigatórios ausentes (name, price, imageUrl)' });
+  }
+
+  try {
+    const product = await prisma.product.create({
+      data: { name, price, description, imageUrl, category }
+    });
+    return res.status(201).json(product);
+  } catch (error) {
+    console.error('Erro ao criar produto:', error);
+    return res.status(500).json({ message: 'Erro ao criar produto' });
+  }
+};
+
+module.exports = { getProducts, getProductById, createProduct };
