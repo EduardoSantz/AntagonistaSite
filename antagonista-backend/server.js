@@ -2,12 +2,12 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const passport = require('./config/passport');
+const passport = require('./config/passport'); // Certifique-se de que este arquivo contenha a configuração atualizada do Passport
 const jwt = require('jsonwebtoken');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 require('dotenv').config();
 
-// Rotas
+// Importa as rotas
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
@@ -16,47 +16,49 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ==================== Configurações Iniciais ====================
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://antagonista-site.vercel.app' 
-    : [
-        'http://localhost:3000',
-        'http://localhost:5000'
-      ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? 'https://antagonista-site.vercel.app'
+        : ['http://localhost:3000', 'http://localhost:5000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ==================== Configuração de Sessão ====================
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: true, // Alterado para true em desenvolvimento
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
-}));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: process.env.NODE_ENV === 'development', // true em desenvolvimento para facilitar os testes
+    cookie: {
+      secure: process.env.NODE_ENV === 'production', // true apenas em produção com HTTPS
+      maxAge: 24 * 60 * 60 * 1000, // 24 horas
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    },
+  })
+);
 
-// ==================== Autenticação ====================
+// ==================== Inicialização do Passport ====================
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Middleware de autenticação JWT
+// ==================== Middleware de Autenticação JWT ====================
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  
-  if (!authHeader?.startsWith('Bearer ')) {
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Token de acesso não fornecido' });
   }
 
   const token = authHeader.split(' ')[1];
-  
+
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ error: 'Token inválido ou expirado' });
     req.user = decoded;
@@ -73,7 +75,7 @@ app.use('/api/cart', verifyToken, cartRoutes);
 app.post('/api/payment', verifyToken, async (req, res) => {
   try {
     const { amount, paymentMethodId, currency = 'brl' } = req.body;
-    
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Converter para centavos
       currency,
@@ -81,20 +83,19 @@ app.post('/api/payment', verifyToken, async (req, res) => {
       confirmation_method: 'manual',
       confirm: true,
       metadata: {
-        userId: req.user.id
-      }
+        userId: req.user.id,
+      },
     });
 
     res.json({
       success: true,
-      clientSecret: paymentIntent.client_secret
+      clientSecret: paymentIntent.client_secret,
     });
-    
   } catch (error) {
     console.error('Erro no pagamento:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro ao processar pagamento',
-      details: error.message 
+      details: error.message,
     });
   }
 });
@@ -104,19 +105,19 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'online',
     environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
 // ==================== Tratamento de Erros ====================
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  
+
   const response = {
     error: {
       code: err.code || 'SERVER_ERROR',
-      message: err.message || 'Erro interno do servidor'
-    }
+      message: err.message || 'Erro interno do servidor',
+    },
   };
 
   if (process.env.NODE_ENV === 'development') {

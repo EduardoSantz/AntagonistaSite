@@ -1,4 +1,3 @@
-// antagonista-backend/controllers/authController.js
 const prisma = require('../config/prismaClient');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
