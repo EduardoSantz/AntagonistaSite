@@ -1,139 +1,92 @@
-// server.js
-const express = require('express');
-const cors = require('cors');
-const session = require('express-session');
-const passport = require('./config/passport'); // Certifique-se de que este arquivo contenha a configuração atualizada do Passport
-const jwt = require('jsonwebtoken');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-require('dotenv').config();
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
+import fileUpload from 'express-fileupload';
+import connectToDatabase from './database/conn.js';
+import routes from './routes.js';
+import { ENV } from './config/envValidator.js';
+import adminRoleRoutes from './routes/adminRoleRoutes.js';
+app.use('/adminRoles', adminRoleRoutes);
 
-// Importa as rotas
-const authRoutes = require('./routes/authRoutes');
-const productRoutes = require('./routes/productRoutes');
-const cartRoutes = require('./routes/cartRoutes');
+const server = express();
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+server.use(helmet());
+server.use(cors({
+  origin: ENV.CORS_ORIGINS.split(','),
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// ==================== Configurações Iniciais ====================
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? 'https://antagonista-site.vercel.app'
-        : ['http://localhost:3000', 'http://localhost:5000'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+server.use(morgan(ENV.NODE_ENV === 'production' ? 'combined' : 'dev'));
+server.use(express.json({ limit: '10kb' }));
+server.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+server.use(fileUpload({
+  limits: { fileSize: ENV.MAX_FILE_SIZE * 1024 * 1024 },
+  abortOnLimit: true,
+  responseOnLimit: 'Tamanho do arquivo excedeu o limite permitido',
+  useTempFiles: true,
+  tempFileDir: '/tmp/'
+}));
 
-// ==================== Configuração de Sessão ====================
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: process.env.NODE_ENV === 'development', // true em desenvolvimento para facilitar os testes
-    cookie: {
-      secure: process.env.NODE_ENV === 'production', // true apenas em produção com HTTPS
-      maxAge: 24 * 60 * 60 * 1000, // 24 horas
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    },
-  })
-);
-
-// ==================== Inicialização do Passport ====================
-app.use(passport.initialize());
-app.use(passport.session());
-
-// ==================== Middleware de Autenticação JWT ====================
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token de acesso não fornecido' });
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: ENV.RATE_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: true,
+    message: 'Muitas requisições deste IP, tente novamente mais tarde'
   }
+});
 
-  const token = authHeader.split(' ')[1];
+const startServer = async () => {
+  try {
+    await connectToDatabase();
+    
+    server.use('/api/v1', apiLimiter, routes);
+    server.use('/uploads', express.static('back/uploads'));
+    server.use(express.static('front', {
+      extensions: ['html', 'htm'],
+      setHeaders: (res) => {
+        res.set('X-Content-Type-Options', 'nosniff')
+      }
+    }));
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: 'Token inválido ou expirado' });
-    req.user = decoded;
-    next();
-  });
+    server.get('/health', (req, res) => res.status(200).json({
+      status: 'OK',
+      version: ENV.APP_VERSION,
+      environment: ENV.NODE_ENV,
+      timestamp: new Date().toISOString()
+    }));
+
+    server.use((err, req, res, next) => {
+      console.error(err.stack);
+      res.status(err.statusCode || 500).json({
+        error: true,
+        message: ENV.NODE_ENV === 'production' 
+          ? 'Erro interno do servidor' 
+          : err.message
+      });
+    });
+
+    server.use('*', (req, res) => {
+      res.status(404).sendFile('front/404.html', { root: '.' });
+    });
+
+    server.listen(ENV.PORT, () => {
+      console.log(`🚀 Servidor ${ENV.APP_NAME} rodando na porta ${ENV.PORT}`);
+      console.log(`Ambiente: ${ENV.NODE_ENV}`);
+      console.log(`Origins permitidos: ${ENV.CORS_ORIGINS}`);
+    });
+
+  } catch (error) {
+    console.error('❌ Falha na inicialização:', error);
+    process.exit(1);
+  }
 };
 
-// ==================== Rotas ====================
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/cart', verifyToken, cartRoutes);
-
-// ==================== Pagamento com Stripe ====================
-app.post('/api/payment', verifyToken, async (req, res) => {
-  try {
-    const { amount, paymentMethodId, currency = 'brl' } = req.body;
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Converter para centavos
-      currency,
-      payment_method: paymentMethodId,
-      confirmation_method: 'manual',
-      confirm: true,
-      metadata: {
-        userId: req.user.id,
-      },
-    });
-
-    res.json({
-      success: true,
-      clientSecret: paymentIntent.client_secret,
-    });
-  } catch (error) {
-    console.error('Erro no pagamento:', error);
-    res.status(500).json({
-      error: 'Erro ao processar pagamento',
-      details: error.message,
-    });
-  }
-});
-
-// ==================== Health Check ====================
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'online',
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// ==================== Tratamento de Erros ====================
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-
-  const response = {
-    error: {
-      code: err.code || 'SERVER_ERROR',
-      message: err.message || 'Erro interno do servidor',
-    },
-  };
-
-  if (process.env.NODE_ENV === 'development') {
-    response.error.stack = err.stack;
-  }
-
-  res.status(err.status || 500).json(response);
-});
-
-// ==================== Inicialização do Servidor ====================
-app.listen(PORT, () => {
-  console.log(`
-  ====================================
-   🚀 Servidor rodando na porta ${PORT}
-   Ambiente: ${process.env.NODE_ENV || 'development'}
-   URL: http://localhost:${PORT}
-  ====================================
-  `);
-});
+startServer();

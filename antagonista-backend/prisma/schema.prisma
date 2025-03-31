@@ -1,6 +1,5 @@
-// antagonista-backend/prisma/schema.prisma
 datasource db {
-  provider = "postgresql" // ou outro banco de dados que esteja usando
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -8,33 +7,115 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  username  String?
-  email     String   @unique
-  password  String?  // pode ser nulo para usuários que se registram via Google
-  googleId  String?  @unique
-  createdAt DateTime @default(now())
-  // Outras relações, se necessário
-}
-
 model Product {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  price       Float
-  imageUrl    String?
-  createdAt   DateTime @default(now())
-  // Outras propriedades e relações
+  id                String           @id @default(uuid())
+  sku               String           @unique
+  nome              String
+  preco             Float
+  precoPromocional  Float?
+  disponivel        Boolean
+  atributos         Json
+  categoriaId       String
+  categoria         Category         @relation(fields: [categoriaId], references: [id])
+  fotos             Photo[]
+  featuredProducts  FeaturedProduct[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 }
 
-model CartItem {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  productId Int
-  quantity  Int
-  createdAt DateTime @default(now())
+model Photo {
+  id         String   @id @default(uuid())
+  src        String
+  url        String
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+}
 
-  user    User    @relation(fields: [userId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+model Category {
+  id          String    @id @default(uuid())
+  nome        String    @unique
+  descricao   String?
+  products    Product[]
+}
+
+model Admin {
+  id           String       @id @default(uuid())
+  nome         String
+  nomeExibicao String
+  email        String       @unique
+  departamento String
+  status       String
+  password     String
+  adminRole    AdminRole?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model User {
+  id         String    @id @default(uuid())
+  cpf        String    @unique
+  name       String
+  email      String    @unique
+  tel        String?
+  birthdate  DateTime
+  password   String
+  addresses  Address[]
+  orders     Order[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Role {
+  id         String      @id @default(uuid())
+  nome       String      @unique
+  descricao  String?
+  adminRoles AdminRole[]
+}
+
+model AdminRole {
+  id       String  @id @default(uuid())
+  adminId  String  @unique
+  roleId   String
+  admin    Admin   @relation(fields: [adminId], references: [id])
+  role     Role    @relation(fields: [roleId], references: [id])
+}
+
+model FeaturedProduct {
+  id         String    @id @default(uuid())
+  offer      String
+  productId  String    @unique
+  product    Product   @relation(fields: [productId], references: [id])
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  userId     String
+  street     String
+  city       String
+  state      String
+  zip        String
+  country    String
+  isDefault  Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Order {
+  id          String     @id @default(uuid())
+  userId      String
+  total       Float
+  status      String
+  items       OrderItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id])
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  price      Float
+  order      Order    @relation(fields: [orderId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
 }

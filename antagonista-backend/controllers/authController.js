@@ -1,63 +1,101 @@
-const prisma = require('../config/prismaClient');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+import { prisma } from '../config/prismaClient.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { hashedPassword, generateToken } from './globalController.js';
 
-// Verifica se a variável de ambiente JWT_SECRET está definida
-if (!process.env.JWT_SECRET) {
-  console.error("A variável de ambiente JWT_SECRET não está definida.");
-  process.exit(1);
-}
+// Registro de usuário (clientes)
+export const registerUser = async (req, res) => {
+  const { cpf, name, birthdate, tel, email, password } = req.body;
 
-const register = async (req, res) => {
-  const { username, email, password } = req.body;
+  if (!cpf || !name || !birthdate || !email || !password) {
+    return res.status(400).json({ error: true, message: 'Preencha os campos necessários' });
+  }
+
   try {
-    // Verifica se o usuário já existe
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Usuário já existe.' });
-    }
-
-    // Cria o hash da senha
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Cria o novo usuário
-    const newUser = await prisma.user.create({
-      data: { username, email, password: hashedPassword },
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ cpf }, { email }]
+      }
     });
 
-    return res.status(201).json({ message: 'Usuário registrado com sucesso!', user: newUser });
+    if (existingUser) {
+      return res.status(400).json({ error: true, message: 'CPF ou e-mail já existem.' });
+    }
+
+    const hashed = await hashedPassword(password);
+    
+    const newUser = await prisma.user.create({
+      data: {
+        cpf,
+        name,
+        email,
+        tel,
+        birthdate: new Date(birthdate),
+        password: hashed
+      }
+    });
+
+    return res.status(201).json({ message: 'Usuário registrado com sucesso!', userId: newUser.id });
+
   } catch (error) {
-    console.error('Erro em register:', error);
-    return res.status(500).json({ message: 'Erro no servidor' });
+    return res.status(500).json({ error: true, message: 'Erro no servidor', details: error.message });
   }
 };
 
-const login = async (req, res) => {
+// Login de usuário
+export const loginUser = async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: true, message: 'Preencha os campos necessários' });
+  }
+
   try {
-    // Busca o usuário pelo email
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !user.password) {
-      return res.status(400).json({ message: 'Credenciais inválidas' });
+
+    if (!user) {
+      return res.status(400).json({ error: true, message: 'Credenciais inválidas' });
     }
 
-    // Verifica a senha
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Credenciais inválidas' });
+      return res.status(400).json({ error: true, message: 'Credenciais inválidas' });
     }
 
-    // Gera o token JWT
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
+    return res.status(200).json({ token: generateToken(user) });
 
-    return res.status(200).json({ message: 'Login realizado com sucesso', token });
   } catch (error) {
-    console.error('Erro em login:', error);
-    return res.status(500).json({ message: 'Erro no servidor' });
+    return res.status(500).json({ error: true, message: 'Erro no servidor', details: error.message });
   }
 };
 
-module.exports = { register, login };
+// Login de administrador
+export const loginAdmin = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: true, message: 'Preencha os campos necessários' });
+  }
+
+  try {
+    const admin = await prisma.admin.findUnique({ where: { email } });
+
+    if (!admin) {
+      return res.status(400).json({ error: true, message: 'Credenciais inválidas' });
+    }
+
+    if (admin.status === 'inativo') {
+      return res.status(401).json({ error: true, message: 'Usuário inativo' });
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: true, message: 'Credenciais inválidas' });
+    }
+
+    return res.status(200).json({ token: generateToken(admin) });
+
+  } catch (error) {
+    return res.status(500).json({ error: true, message: 'Erro no servidor', details: error.message });
+  }
+};

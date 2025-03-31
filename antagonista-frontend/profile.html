@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pedido Realizado - Antagonista Merchstore</title>
+  <title>Perfil - Antagonista Merchstore</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 </head>
 <body>
-  <!-- Header Padronizado (pode ser incluído se desejado) -->
+  <!-- Header Padronizado -->
   <header class="container">
     <div class="navbar">
       <div class="logo">
@@ -18,27 +20,32 @@
           <li><a href="index.html">Início</a></li>
           <li><a href="produtos.html">Produtos</a></li>
           <li><a href="sobre.html">Sobre</a></li>
-          <li><a href="login.html">Conta</a></li>
+          <li><a href="profile.html">Conta</a></li>
         </ul>
       </nav>
-      <a href="carrinho.html">
+      <a href="cart.html">
         <img src="images/carrinho de compra.jpg" alt="Carrinho" width="30" height="30">
       </a>
       <img src="images/menu.png" alt="Menu" class="menu-icon" onclick="toggleMenu()">
     </div>
   </header>
 
-  <!-- Conteúdo do Pedido Realizado -->
-  <div class="container">
-    <h1>Pedido Realizado com Sucesso!</h1>
-    <p>Obrigado por comprar na Antagonista Merchstore.</p>
-    <a href="index.html" class="btn">Voltar para a Home</a>
-  </div>
+  <!-- Conteúdo do Perfil -->
+  <main class="container">
+    <h1>Meu Perfil</h1>
+    <div class="profile">
+      <img src="images/perfil-placeholder.jpg" alt="Foto de Perfil" class="profile-picture">
+      <div class="profile-info">
+        <p><strong>Email:</strong> <span id="userEmail"></span></p>
+        <!-- Você pode adicionar mais informações do usuário aqui -->
+        <button class="btn" id="logoutBtn">Sair</button>
+      </div>
+    </div>
+  </main>
 
   <!-- Footer Padronizado -->
   <footer class="footer">
     <div class="container">
-      <!-- Conteúdo do footer conforme as demais páginas -->
       <div class="row">
         <div class="footer-col-1">
           <h3>Baixe nosso aplicativo</h3>
@@ -72,6 +79,33 @@
     </div>
   </footer>
 
-  <script src="main.js"></script>
+  <!-- Script para checar login e gerenciar logout -->
+  <script>
+    // Função para alternar o menu (pode ser extraída para um arquivo comum)
+    function toggleMenu() {
+      const menuItems = document.getElementById('MenuItems');
+      if (menuItems) {
+        menuItems.classList.toggle('active');
+      }
+    }
+
+    // Verifica se o usuário está logado
+    document.addEventListener('DOMContentLoaded', function() {
+      if(localStorage.getItem('loggedIn') !== 'true'){
+        // Se não estiver logado, redireciona para a página de login
+        window.location.href = "login.html";
+      } else {
+        // Exibe o email do usuário
+        document.getElementById('userEmail').innerText = localStorage.getItem('userEmail');
+      }
+    });
+
+    // Função de logout
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+      localStorage.removeItem('loggedIn');
+      localStorage.removeItem('userEmail');
+      window.location.href = "login.html";
+    });
+  </script>
 </body>
 </html>

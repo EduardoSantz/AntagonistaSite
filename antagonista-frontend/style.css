@@ -800,3 +800,188 @@ input:not(:placeholder-shown) {
     background-color: white;
     color: black;
 }
+
+/* ---------- Melhorias Exclusivas para Páginas de Conta (Cadastro, Login e Perfil) ---------- */
+
+/* Garante que as páginas de conta ocupem a tela inteira e centralizem o conteúdo */
+.account-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background: radial-gradient(rgb(145, 8, 8), rgb(20, 7, 7));
+}
+
+/* Container dos formulários (cadastro e login) */
+.account-page .form-container {
+    background: #1c1c1c;
+    width: 350px;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    max-height: 90vh; /* Garante que todo o conteúdo seja visível sem scroll desnecessário */
+    overflow-y: auto;
+}
+
+/* Títulos das páginas de conta */
+.account-page h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #fff;
+    font-size: 24px;
+}
+
+/* Estilização dos formulários dentro das páginas de conta */
+.account-page form {
+    display: flex;
+    flex-direction: column;
+}
+.account-page form label {
+    margin-top: 10px;
+    color: #fff;
+    font-size: 14px;
+}
+.account-page form input {
+    background-color: #2c2c2c;
+    border: none;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 5px;
+    color: #fff;
+    font-size: 14px;
+}
+.account-page form input::placeholder {
+    color: #bfbfbf;
+}
+.account-page form .btn {
+    background: var(--primary);
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 20px;
+    transition: background 0.3s;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+}
+.account-page form .btn:hover {
+    background: var(--secondary);
+}
+.account-page p {
+    text-align: center;
+    margin-top: 15px;
+    color: #fff;
+    font-size: 14px;
+}
+
+/* ---------- Melhorias para a Página de Login (mais compacta) ---------- */
+/* Caso a página de login não esteja dentro de .account-page, aplique estas regras específicas */
+#loginForm {
+    max-width: 350px;
+    margin: 0 auto;
+    background: #1c1c1c;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+#loginForm label {
+    display: block;
+    margin-top: 10px;
+    color: #fff;
+    font-size: 14px;
+}
+#loginForm input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border: none;
+    border-radius: 4px;
+    background: #2c2c2c;
+    color: #fff;
+    font-size: 14px;
+}
+#loginForm .btn {
+    width: 100%;
+    background: var(--primary);
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 20px;
+    transition: background 0.3s;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+}
+#loginForm .btn:hover {
+    background: var(--secondary);
+}
+#loginForm p {
+    text-align: center;
+    margin-top: 15px;
+    color: #fff;
+    font-size: 14px;
+}
+
+/* ---------- Melhorias para o Layout do Carrinho ---------- */
+.cart-page {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #1c1c1c;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+.cart-page table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+}
+.cart-page th, 
+.cart-page td {
+    padding: 12px 15px;
+    text-align: center;
+}
+.cart-page th {
+    background: var(--primary);
+}
+.cart-page td {
+    background: #2c2c2c;
+}
+.cart-page td img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+}
+.cart-page .total-price {
+    margin-top: 20px;
+    text-align: right;
+}
+.cart-page .total-price table {
+    margin-left: auto;
+    width: 100%;
+    max-width: 400px;
+    border-top: 3px solid var(--primary);
+}
+.cart-page .total-price td:last-child {
+    text-align: right;
+}
+
+/* ---------- Responsividade para Páginas de Conta e Carrinho ---------- */
+@media only screen and (max-width: 600px) {
+    .account-page .form-container,
+    #loginForm {
+        width: 90%;
+        padding: 20px;
+    }
+    .account-page h1 {
+        font-size: 20px;
+    }
+    .cart-page {
+        width: 95%;
+        padding: 10px;
+    }
+    .cart-page th, 
+    .cart-page td {
+        padding: 8px;
+        font-size: 12px;
+    }
+}
